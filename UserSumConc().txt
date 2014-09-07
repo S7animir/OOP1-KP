@@ -1,0 +1,48 @@
+/*void UserSumConc() {
+
+		char respons;
+		int i = 0;
+		int *p = new int;
+		
+		do{
+			std::cout<<"Enter the destination cell.\nFirst enter the number of the row :";
+			clearstream(std::cin);
+			std::cin>>*p;
+		}while(!std::cin.good());
+
+		p = p + 1;
+
+		do{
+			std::cout<<"Now enter the number of the column :";
+			clearstream(std::cin);
+			std::cin>>*p;
+		}while(!std::cin.good());
+
+		p = p + sizeof(int);
+		i++;
+
+		do{
+			do{
+				std::cout<<"Enter the cell to be added\nFirst enter the number of the row :";
+				clearstream(std::cin);
+				std::cin>>*p;
+			}while(!std::cin.good());
+
+			p = p + sizeof(int);
+
+			do{
+				std::cout<<"Now enter the number of the column :";
+				clearstream(std::cin);
+				std::cin>>*p;
+			}while(!std::cin.good());
+
+			p = p + sizeof(int);
+			i++;
+
+			std::cout<<"Do you want to add cell? (n or N to stop)";
+			std::cin>>respons;
+
+		}while(respons != 'n' || respons != 'N');
+
+		//p = p - i*2;
+	}*/
