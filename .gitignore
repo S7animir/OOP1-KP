@@ -172,3 +172,11 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+
+
+
+
+
+#My Project stuf
+test.txt
+tests/
