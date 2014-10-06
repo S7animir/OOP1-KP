@@ -54,16 +54,21 @@ II.10. установява от зададена колона и от ред до ред с подадена стойност
 
 
 #include <iostream>
-#include <string>
+#include <string>		// std::string
 #include <list>
-#include <random>
 #include <limits>
-#include <utility>
-#include <cstddef>
+#include <algorithm>
+#include <vector>
+#include <utility>		// std::move
 
-#include <fstream>
+//#include <random>
+//#include <cstddef>
 
-const long double NAN = std::numeric_limits<long double>::signaling_NaN();
+
+//#include <fstream>
+
+
+const long double NAN = std::numeric_limits<long double>::quiet_NaN();
 
 void ClearStream(std::istream& iss) {
 	iss.clear();
@@ -84,40 +89,22 @@ class Cell {				//клас описател на клетка от таблица
 	unsigned int uintColumn_;	//колона
 	char chType_;					//тип на данните - символ
 
-	Cell(Cell&&);
-	Cell& operator=(Cell&&);
-
 public:
 
 	//конструктор по подразбиране
-	Cell() : ldReal_(0), uintRow_(0), uintColumn_(0), chType_('E') {
-		strStr_.clear();
-	}
+	Cell() : ldReal_(NAN), strStr_(""), uintRow_(0), uintColumn_(0), chType_('S') {}
 	
 	//конструктор на празна клетка с посочени ред и колона
-	/*Cell(const unsigned int row, const unsigned int column) : ldReal_(0), chType_('E') {
-		
-		strStr_.clear();
-		uintRow_ = row;
-		uintColumn_ = column;
-	}*/
+	Cell(const unsigned int row, const unsigned int column) 
+		: ldReal_(NAN), strStr_(""), uintRow_(row), uintColumn_(column), chType_('S') {}
 
 	//експлицитен конструктор за реална стойност на данните в клетката
-	Cell(const long double real, const unsigned int row, const unsigned int column) : chType_('R') {
-		
-		ldReal_ = real;
-		strStr_.clear();
-		uintRow_ = row;
-		uintColumn_ = column;
-	}
+	Cell(const long double real, const unsigned int row, const unsigned int column) 
+		: ldReal_(real), strStr_(""), uintRow_(row), uintColumn_(column), chType_('R') {}
 
 	//експлицитен конструктор за стрингова стойност на данните в клетката
-	Cell(const std::string& str, const unsigned int row, const unsigned int column) : ldReal_(NAN), chType_('S') {
-		
-		strStr_ = str;
-		uintRow_ = row;
-		uintColumn_ = column;
-	}
+	Cell(const std::string& str, const unsigned int row, const unsigned int column) 
+		: ldReal_(NAN), strStr_(str), uintRow_(row), uintColumn_(column), chType_('S') {}
 
 	/*Cell(const long double real, const std::string& str, 
 		const int row, const int column, const char type) {
@@ -129,15 +116,12 @@ public:
 			chType_ = type;
 	}*/
 
-	//copy constructor
-	Cell(const Cell& ob) {
-		
-		ldReal_ = ob.ldReal_;
-		strStr_ = ob.strStr_;
-		uintRow_ = ob.uintRow_;
-		uintColumn_ = ob.uintColumn_;
-		chType_ = ob.chType_;
-	}
+	//копиращ конструктор
+	Cell (const Cell& ob) : ldReal_(ob.ldReal_), strStr_(ob.strStr_), uintRow_(0), uintColumn_(0), chType_(ob.chType_) {}
+
+	//move constructor
+	Cell(Cell &&ob) : ldReal_(std::move(ob.ldReal_)), strStr_(std::move(ob.strStr_)), uintRow_(std::move(ob.uintRow_)), 
+		uintColumn_(std::move(ob.uintColumn_)), chType_(std::move(ob.chType_)) {}
 
 	//copy assignment operator
 	Cell& operator= (const Cell &ob) {
@@ -149,6 +133,31 @@ public:
 		chType_ = ob.chType_;
 		
 		return *this;
+	}
+
+	//move assignment operator
+	Cell& operator= (Cell &&ob) {
+
+		ldReal_ = std::move(ob.ldReal_);
+		strStr_ = std::move(ob.strStr_);
+		//uintRow_ = std::move(ob.uintRow_);
+		//uintColumn_ = std::move(ob.uintColumn_);
+		//chType_ = std::move(ob.chType_);
+		
+		return *this;
+	}
+
+	//оператор за събиране (събира или конкатинира стойността на данните в клетката)
+	Cell operator+ (const Cell& ob) {
+		
+		Cell temp;
+		if(chType_ == 'R') {
+			temp.ldReal_ = ldReal_ + ob.ldReal_;
+		}
+		else {
+			temp.strStr_ = strStr_ + ob.strStr_;
+		}
+		return temp;
 	}
 
 	//чете реална стойност
@@ -189,18 +198,18 @@ public:
 		
 		try {
 			strStr_ = str;
-			chType_ = 'S';
 			ldReal_ = NAN;
+			chType_ = 'S';
 		}
 		catch(const std::length_error&) {
 			strStr_.clear();
-			chType_ = 'S';
 			ldReal_ = NAN;
+			chType_ = 'S';
 		}
 		catch(std::bad_alloc&) {
 			strStr_.clear();
-			chType_ = 'S';
 			ldReal_ = NAN;
+			chType_ = 'S';
 		}
 	}
 
@@ -216,22 +225,32 @@ public:
 
 	void SetType(const char type) {
 
-		if(type == 'R')
-			chType_ = type;
-		else if(type == 'E')
-			chType_ = type;
-		else
-			chType_ = 'S';
-	}
+		if(type == 'R') {
+			if(chType_ == 'S') {
+				std::string::size_type sz = 0;
+				try {
+					ldReal_ = std::stold(strStr_, &sz);
+					ldReal_ = sz == strStr_.length() ? ldReal_ : NAN;
+				}
+				catch(...) {
+					ldReal_ = NAN;
+				}
+			}
 
-	Cell operator+ (const Cell& ob) {
-		
-		Cell temp;
-		temp.chType_ = chType_;
-		temp.ldReal_ = ldReal_ + ob.ldReal_;
-		temp.strStr_ = strStr_ + ob.strStr_;
+			chType_ = type;
+		}
+		else if(type == 'S') {
+			if(chType_ == 'R') {
+				try {
+					strStr_ = std::to_string(ldReal_);
+				}
+				catch(...) {
+					strStr_.clear();
+				}
+			}
+			chType_ = type;
+		}
 
-		return temp;
 	}
 	
 	friend std::istream& operator>> (std::istream& is, Cell& ob);
@@ -258,139 +277,208 @@ bool roworcolumnNULL(Cell *theElement) {
 	return false;
 }
 
-bool deleteAll(Cell *theElement) {
-	delete theElement;
-	return true;
-}
+class ComputeError {
 
-class CData {
-
-	std::list<Cell*> table;
-	unsigned int iVldR;
-	unsigned int iVldC;
+	std::string strWhat_;
 
 public:
 
-	CData() {
-		iVldR = NULL;
-		iVldC = NULL;
+	ComputeError() : strWhat_("Compute error!") {}
+
+	ComputeError(const std::string &msg) : strWhat_(msg) {}
+
+	std::string what() { return strWhat_;}
+
+};
+
+class DeleteIfIs {
+
+public:
+	bool operator() (Cell *ob) {
+		if(ob != nullptr) {
+			delete ob;
+			return true;
+		}
+		return false;
 	}
+};
 
-	/*CData(const int &VldR, const int &VldC) {
+class GetColumnType {
+	
+	unsigned int column_;
+
+public:
+
+	GetColumnType () : column_(0) {}
+
+	GetColumnType (const unsigned int column) : column_(column) {}
+
+	bool operator() (Cell *ob) {
+		if(ob->GetRow() == 1 && ob->GetColumn() == column_)
+			return true;
+		return false;
+	}
+};
+
+class CData {
+
+	std::list<Cell*> table_;
+	unsigned int uintRows_;
+	unsigned int uintColumns_;
+	
+	CData (const CData& ob);
+	CData(CData&&);
+	CData& operator= (CData&&);
+	CData& operator= (const CData &ob);
+
+public:
+
+	//конструктор по подразбиране
+	CData() : table_(), uintRows_(0), uintColumns_(0) {}
+
+	CData(const unsigned int rows, const unsigned int columns) : uintRows_(rows), uintColumns_(columns) {
 		
-		iVldR = VldR;
-		iVldC = VldC;
-
-		for(int i=0; i<VldR; i++)
-			for(int j=0; j<VldC; j++)
-				table.push_back(new Cell(0, "", i+1, j+1, 'E'));;
-
-	}*/
+		for(unsigned int i = 0; i < uintRows_; ++i)
+			for(unsigned int j = 0; j < uintColumns_; ++j)
+				table_.push_back( new Cell(i+1, j+1) );
+	}
 
 	~CData() {
-		table.remove_if(deleteAll);
-		iVldR = NULL;
-		iVldC = NULL;
+		table_.remove_if(DeleteIfIs());
+		uintRows_ = 0;
+		uintColumns_ = 0;
 	}
 
-	int GetiVldR() {
-		return iVldR;
+	unsigned int GetRows() {
+		return uintRows_;
 	}
 
-	int GetiVldC() {
-		return iVldC;
+	unsigned int GetColumns() {
+		return uintColumns_;
 	}
 
-	std::list<Cell*> Gettable() {
-		return table;
-	}
-
-	void ColumnToRorS(const unsigned int &n, const char &type) {
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it)
-			if((*it)->GetColumn() == n)
-				(*it)->SetType(type);
-	}
-
-	/*void AddCell(const Cell &ob) {
-
-		if(ob.GetColumn() > iVldC && ob.GetRow())
-			table.push_back(new Cell(ob));
-		else if(!ob.GetColumn() || !ob.GetRow())
-			return;
-		else {
-			table.sort(byrowcolumn);
-			for(std::list<Cell*>::iterator it=table.begin(); (*it)->GetRow() < 2; ++it)
-				if(ob.GetColumn() == (*it)->GetColumn()) {
-					if(iVldR < ob.GetRow()) {
-						table.push_back(new Cell(ob));
-						(table.back())->SetType((*it)->GetType());
-						break;
-					}
-					else {
-						char type = (*it)->GetType();
-						//(*(*it)) = ob;
-						(*it)->SetType(type);
-						break;
-					}
-				}
-		}
-	}*/
-
-	std::pair<std::string, long double> SumConc() {
-
-		long double result = 0;
-		std::string conc;
-
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if((*it)->GetType() == 'R')
-				result += (*it)->GetReal();
-			else if((*it)->GetType() == 'S') {
-				conc += (*it)->GetStr();
-			}
-		}
-		std::pair<std::string, long double> retpair (conc, result);
-		return retpair;
-	}
-
-	long double AverageReal() {
-
-		long double result = 0;
-		unsigned int num = 0;
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if((*it)->GetType() == 'R') {
-				result += (*it)->GetReal();
-				num++;
-			}
-		}
-
-		return result/num;
-	}
-
-	CData CDataFromTo(const unsigned int &Row, const unsigned int &Column, 
-		const unsigned int &Row2, const unsigned int &Column2) {
+	std::list<Cell*> GetTable() {
 		
-		unsigned int row1 = Row;
-		unsigned int column1 = Column;
-		unsigned int row2 = Row2;
-		unsigned int column2 = Column2;
+		std::list<Cell*> temp;
+		
+		for(std::list<Cell*>::iterator it=table_.begin(); it!=table_.end(); ++it) {
+			
+			temp.push_back( new Cell(*(*it)) );
+		}
 
+		return temp;
+	}
+
+	void SetColumnType(const unsigned int column, const char type) {
+		
+		for(std::list<Cell* >::iterator it=table_.begin(); it!=table_.end(); ++it) {
+			
+			if((*it)->GetColumn() == column)
+				(*it)->SetType(type);
+		}
+	}
+
+	void AddCell(const Cell &ob) {
+
+		if(!ob.GetColumn() || !ob.GetRow())
+			return;
+		else if(ob.GetColumn() > uintColumns_) {
+			
+			table_.push_back(new Cell(ob));
+			++uintColumns_;
+			if(ob.GetRow() > uintRows_)
+				++uintRows_;
+		}
+		else if(ob.GetRow() > uintRows_) {
+			
+			GetColumnType columnType(ob.GetColumn());
+
+			std::list<Cell* >::iterator it = std::find_if(table_.begin(), table_.end(), columnType );
+
+			if((*it)->GetType() == ob.GetType()) {
+				table_.push_back(new Cell(ob));
+				++uintRows_;
+			}
+		}
+	}
+
+	long double TableSum() {
+		
+		long double result = 0.0;
+		for(std::list<Cell* >::iterator it=table_.begin(); it!=table_.end(); ++it) {
+
+			if( (*it)->GetType() == 'R' )
+				result = result + (*it)->GetReal();
+		}
+
+		return result;
+	}
+
+	std::string TableConcat() {
+
+		std::string str = "";
+		for(std::list<Cell* >::iterator it=table_.begin(); it!=table_.end(); ++it) {
+
+			if( (*it)->GetType() == 'S' )
+				str = str + (*it)->GetStr();
+		}
+
+		return str;
+	}
+
+	long double ColumnsAverage() {
+
+		std::vector<unsigned int> columns;
+		long double result = 0;
+		unsigned int count = 0;
+
+		for(std::list<Cell* >::iterator it=table_.begin(); it!=table_.end(); ++it) {
+
+			if( (*it)->GetRow() == 1 && (*it)->GetType() == 'R' )
+				columns.push_back((*it)->GetColumn());
+		}
+
+		for(std::list<Cell* >::iterator it=table_.begin(); it!=table_.end(); ++it) {
+
+			for(unsigned int i = 0; i < columns.size(); ++i) {
+				if((*it)->GetColumn() == columns[i]) {
+					result = result + (*it)->GetReal();
+					++count;
+				}
+			}
+		}
+
+		if(count)
+			result = result/count;
+		else {
+			result = NAN;
+			throw ComputeError("The table (CData) do not have columns with real(number) data!");
+		}
+
+		if(result - result != 0)
+			throw ComputeError("Result is not a number");
+
+		return result;
+	}
+
+	CData CDataFromTo(unsigned int row1, unsigned int column1, unsigned int row2, unsigned int column2) {
+		
 		CData ob;
 		std::list<Cell*>::iterator it;
-
+		
 		if(row1 > row2) {
-			int Rowt;
-			Rowt = row1;
+			unsigned int temp = row1;
 			row1 = row2;
-			row2 = Rowt;
-		}
-		if(column1 > column2) {
-			int Columnt;
-			Columnt = column1;
-			column1 = column2;
-			column2 = Columnt;
+			row2 = temp;
 		}
 
-		if(!row1 || !column1 || !row2 || !column2 || 
+		if(column1 > column2) {
+			unsigned int temp = column1;
+			column1 = column2;
+			column2 = temp;
+		}
+
+		/*if(!row1 || !column1 || !row2 || !column2 || 
 			row1 < 1 || row2 > iVldR || column1 < 1 || column2 > iVldC) {
 			ob.iVldR = 0;
 			ob.iVldC = 0;
@@ -420,151 +508,46 @@ public:
 				it++;
 			};
 
-		return ob;
-	}
-
-	void RandData(const unsigned int column) {
-
-		std::random_device rd;
-
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if((*it)->GetColumn() == column) {
-				if((*it)->GetType() == 'R') {
-					std::uniform_real_distribution<long double> distribution(std::numeric_limits<long double>::min(),std::numeric_limits<long double>::max());
-					(*it)->SetReal(distribution(rd));
-				}
-				else if((*it)->GetType() == 'S') {
-					std::string str;
-					std::uniform_int_distribution<int> distribution(0,10);
-					std::uniform_int_distribution<int> dis(0,255);
-					int j = distribution(rd);
-					for(int i = 0; i<j; i++)
-						//str.push_back(dis(rd));
-
-					(*it)->SetStr(str);
-				}
-			}
-		}
-	}
-
-	void SetallColumn() {
-		
-		table.remove_if(roworcolumnNULL);
-		
-		std::vector<char> firstrowTypes(iVldC);
-		table.sort(byrowcolumn);
-
-		std::list<Cell*>::iterator it;
-		unsigned int i = 0;
-		for(it=table.begin(); (*it)->GetRow() < 2; ++it) {
-			firstrowTypes[i] = (*it)->GetType();
-			i++;
-		}
-
-		for(; it!=table.end(); ++it) {
-			(*it)->SetType(firstrowTypes[(*it)->GetColumn() - 1]);
-		}
-
-	}
-
-	std::list<Cell*> GetInvalidCells() {
-
-		std::list<Cell*> inv;
-
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if(!(*it)->GetRow() || !(*it)->GetColumn() || !((*it)->GetType() == 'E' || 
-				(*it)->GetType() == 'R' || (*it)->GetType() == 'S')) {
-					inv.push_back((*it));
-			}
-			else if((*it)->GetType() == 'E' && ((*it)->GetReal() || (*it)->GetStr() != "")) {
-				inv.push_back((*it));
-			}
-			else if((*it)->GetType() == 'R' && ((*it)->GetReal() - (*it)->GetReal())) {
-				inv.push_back((*it));
-			}
-		}
-
-		return inv;
-	}
-
-	void SetCfR1toR2(const long double &Real, const unsigned int &Column, 
-		const unsigned int &Row1, const unsigned int &Row2) {
-
-		unsigned int row1 = Row1;
-		unsigned int row2 = Row2;
-
-		if(row1 > row2) {
-			int Row;
-			Row = row1;
-			row1 = row2;
-			row2 = Row;
-		}
-
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if((*it)->GetColumn() == Column && (*it)->GetRow() >= row1 && 
-				(*it)->GetRow() <= row2) {
-					(*it)->SetReal(Real);
-					if(row1 == row2)
-						break;
-			}
-		}
-	}
-
-	void SetCfR1toR2(const std::string &Str, const unsigned int &Column, 
-		const unsigned int &Row1, unsigned const int &Row2) {
-
-		unsigned int row1 = Row1;
-		unsigned int row2 = Row2;
-
-		if(row1 > row2) {
-			int Row;
-			Row = row1;
-			row1 = row2;
-			row2 = Row;
-		}
-
-		for(std::list<Cell*>::iterator it=table.begin(); it!=table.end(); ++it) {
-			if((*it)->GetColumn() == Column && (*it)->GetRow() >= row1 && 
-				(*it)->GetRow() <= row2) {
-					(*it)->SetStr(Str);
-					if(row1 == row2)
-						break;
-			}
-		}
+		return ob;*/
 	}
 };
 
 std::istream &operator>> (std::istream &is, Cell &ob) {
+	
+	Cell temp;
+	is>>temp.chType_;
 
-	is.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-	std::streampos pos = is.tellg();
-
-	try {
-		Cell temp;
-		is>>temp.chType_;
-
+	if(temp.chType_ == 'R' || temp.chType_ == 'S') {
+		
 		if(temp.chType_ == 'R') {
 			is>>temp.ldReal_;
 			temp.strStr_.clear();
 		}
-		else if(temp.chType_ == 'S') {
+		else {
 			temp.ldReal_ = NAN;
 			is>>temp.strStr_;
 		}
+		
+		long long int i = 0;
+		is>>i;
+		if(i < 0 || i > static_cast <long long int> (std::numeric_limits<unsigned int>::max())) {
+			is.setstate(std::ios_base::failbit);
+		}
 		else {
-			temp.chType_ = 'E';
-			temp.ldReal_ = 0;
-			temp.strStr_.clear();
+			temp.uintRow_ = static_cast <unsigned int> (i);
+			is>>i;
+			if(i < 0 || i > (long int)std::numeric_limits<unsigned int>::max()) {
+				is.setstate(std::ios_base::failbit);
+			}
+			else temp.uintColumn_ = static_cast <unsigned int> (i);
 		}
 		
-		is>>temp.uintRow_;
-		is>>temp.uintColumn_;
-
-		ob = temp;
-	}
-	catch(const std::ios_base::failure) {
-		ClearStream(is);
-		is.ignore('R'||'S'||'E');
+		if(is.good())
+			ob = temp;
+		else {
+			ClearStream(is);
+			//throw std::ios_base::failure("Invalid input!");
+		}
 	}
 
 	return is;
@@ -572,65 +555,59 @@ std::istream &operator>> (std::istream &is, Cell &ob) {
 
 std::ostream &operator<< (std::ostream &os, const Cell &ob) {
 	
-	//std::streampos pos = os.tellp();
-	os.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-
-	try {
+	if(os.good()) {
 		os<<ob.chType_<<" ";
-		
+	
 		if(ob.chType_ == 'R')
 			os<<ob.ldReal_;
-		else if(ob.chType_ == 'S')
+		else
 			os<<ob.strStr_;
-		else os<<"";
-		
+	
 		os<<" "<<ob.uintRow_<<" "<<ob.uintColumn_<<" ";
 	}
-	catch(std::ios_base::failure) {
-		ClearStream(os);
-		//os.seekp(os.tellp()-pos);
-
-	}
+	else ClearStream(os);
 	
 	return os;
 }
 
 
-
 //В main ВСИЧКО Е ЗА ТЕСТВАНЕ, А НЕ В ГОТОВ ВАРИАНТ!!!
 void main() {
+
 	Cell ob88;
 	Cell ob1("1leva1", 13, 14);
 	Cell ob5("123456", 10, 9);
 	Cell ob2(3.21845215553, 99, 100);
 	Cell ob3 = ob1;
 	Cell ob4 = ob2;
-	
+	ob4 = (ob5 + ob2);
 	//std::cin>>ob4;
 	//std::cin>>ob2;
 
 	//std::cin>>ob88;
 
-	std::fstream outfile;
-	outfile.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-	try {
-		//outfile.open ("test.txt");
-		
-		//outfile<<ob1;
-		//outfile.close();
-		
-		//ако се чудиш защо тук не влиза - нямаш файл test.txt
-		outfile.open ("test.txt");
-		outfile>>ob2;
-		outfile.close();
-	}
-	catch(std::ios_base::failure){}
+	
 
 	std::cout<<ob4;
 	std::cout<<ob4;
 	//CData ob6(3, 5);
 	//ob6.ColumnToRorS(1, 'S');
-	CData ob7;
+	CData ob7(3,5);
+	ob7.SetColumnType(3, 'R');
+	std::list<Cell* > rety;
+	rety = ob7.GetTable();
+	unsigned int ttt;
+	ttt = ob7.GetRows();
+	Cell tt(5.5, 88, 90);
+	ob7.AddCell(tt);
 	//ob6.SumConc();
 	//ob6.RandData(2);
+	long double ddd = 0;
+	try {
+	ddd = ob7.ColumnsAverage();
+	}
+	catch(...){
+		ddd=12.12;
+	}
+	Cell io;
 }

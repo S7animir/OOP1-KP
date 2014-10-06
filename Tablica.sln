@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tablica", "Tablica.vcxproj"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "seekp", "tests\seekp\seekp.vcxproj", "{7167D1D8-120D-429C-93C3-6CC1312E7F5F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unique_ptr", "C:\Documents and Settings\Administrator\My Documents\Visual Studio 2010\Projects\unique_ptr\unique_ptr.vcxproj", "{1D0F4EE7-4A2F-4009-A9DA-01CFD7BBD8F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{7167D1D8-120D-429C-93C3-6CC1312E7F5F}.Debug|Win32.Build.0 = Debug|Win32
 		{7167D1D8-120D-429C-93C3-6CC1312E7F5F}.Release|Win32.ActiveCfg = Release|Win32
 		{7167D1D8-120D-429C-93C3-6CC1312E7F5F}.Release|Win32.Build.0 = Release|Win32
+		{1D0F4EE7-4A2F-4009-A9DA-01CFD7BBD8F1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1D0F4EE7-4A2F-4009-A9DA-01CFD7BBD8F1}.Debug|Win32.Build.0 = Debug|Win32
+		{1D0F4EE7-4A2F-4009-A9DA-01CFD7BBD8F1}.Release|Win32.ActiveCfg = Release|Win32
+		{1D0F4EE7-4A2F-4009-A9DA-01CFD7BBD8F1}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
